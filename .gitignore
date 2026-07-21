@@ -1,0 +1,54 @@
+# Visual Studio CMake output
+out/
+.vs/
+
+# Common out-of-source build dirs (other tools/CI)
+build/
+cmake-build-*/
+_builds/
+
+# CMake generated files (in case anyone configures in-source)
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+cmake_install.cmake
+install_manifest.txt
+CTestTestfile.cmake
+Testing/
+compile_commands.json
+CPackConfig.cmake
+CPackSourceConfig.cmake
+_deps/
+
+# Presets: share the team file, ignore the personal one
+CMakeUserPresets.json
+
+# Editors
+.idea/
+.vscode/
+*.user
+*.userosscache
+*.suo
+*.VC.db
+*.VC.VC.opendb
+
+# Binaries & intermediates (belt-and-braces if something escapes out/)
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.so.*
+*.dylib
+*.dll
+*.exe
+*.ilk
+*.pdb
+*.exp
+*.gch
+*.pch
+
+# OS junk
+.DS_Store
+Thumbs.db
+Desktop.ini
