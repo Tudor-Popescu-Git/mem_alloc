@@ -6,6 +6,7 @@ out/
 build/
 cmake-build-*/
 _builds/
+dump/
 
 # CMake generated files (in case anyone configures in-source)
 CMakeCache.txt
