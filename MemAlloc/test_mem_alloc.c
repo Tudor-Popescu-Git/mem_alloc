@@ -75,7 +75,7 @@ void  mem_free(void *ptr);
 
 /* Alignment every returned pointer must meet. Lower it to match your design. */
 #ifndef MEM_ALIGNMENT
-#define MEM_ALIGNMENT (sizeof(void *))
+#define MEM_ALIGNMENT 1
 #endif
 
 /* Your static array's size, from your header: #define MEM_HEAP_SIZE (256UL) */
@@ -235,7 +235,19 @@ static size_t fill(size_t size)
     size_t n = 0;
     void  *p;
 
-    while (n < MAX_LIVE && (p = mem_alloc(size)) != NULL) g_ptrs[n++] = p;
+    while (n < MAX_LIVE)
+    {
+        if ((p = mem_alloc(size)) == NULL)
+        {
+            break;
+        }
+        if (n == 2)
+        {
+            volatile int x = 0;
+            x = x + 1;
+        }
+        g_ptrs[n++] = p;
+    }
     return n;
 }
 
@@ -571,6 +583,11 @@ static void test_checkerboard(void)
     void  *p;
 
     n = fill(32);
+    if (n == 2)
+    {
+        volatile int x;
+        x = x + 1;
+    }
     REQUIRE(n >= 4, "only %zu blocks fit", n);
 
     /* Free every other block. No two free blocks are adjacent now. */

@@ -18,8 +18,8 @@ const uint32_t mem_footer_end = 0x22222222;
 const int next_node_coalesce = sizeof(mem_header) + MALLOC_SIZE + sizeof(mem_footer) + sizeof(mem_header) + MALLOC_SIZE + sizeof(mem_footer);
 
 int debug_flag = 0;
-static int mem_alloc_nr = 0;
-static int mem_free_nr = 0;
+static size_t mem_alloc_nr = 0;
+static size_t mem_free_nr = 0;
 
 
 mem_word_type mem_heap[MEM_HEAP_SIZE] = { 0 };
@@ -202,20 +202,15 @@ void* mem_alloc(mem_size N)
 	mem_header * p = MEM_HEAD;
 	mem_footer * p_footer = NULL;
 	printf("mem_alloc_nr = %d, size requested = %d\n", mem_alloc_nr, N);
-	if (mem_alloc_nr == 20339)
-	{
-		volatile int x = 0;
-		x = x + 1;
-	}
 	mem_alloc_nr++;
 	size_t mem_provisioning = MEM_WHOLE_SIZE(N);
 	mem_provisioning = (sizeof(mem_header) + sizeof(mem_word_type) * (N) + sizeof(mem_footer));
-	if (N == 739)
+	if (mem_alloc_nr == 2058)
 	{
 		volatile int x = 0;
 		x = x + 1;
 	}
-	if (&mem_head[0] + mem_provisioning * sizeof(mem_word_type) > (uint8_t*)mem_lambda_header)
+	if ((mem_word_type *)&mem_head[0] + mem_provisioning > (mem_word_type *)mem_lambda_header)
 	{
 		return NULL;
 	}
@@ -228,16 +223,36 @@ void* mem_alloc(mem_size N)
 			continue;
 		}
 
-		if (MEM_SIZE(p) < mem_provisioning)
+		if (MEM_SIZE(p) < N)
 		{
 			p = MEM_LINK(p);
 			continue;
 		}
 
+		if (MEM_SIZE(p) >= N + MEM_WHOLE_SIZE(0)) 
+		{
+			size_t remaining = MEM_SIZE(p) - MEM_WHOLE_SIZE(N);
+			mem_header* next = (uint8_t *)p + MEM_WHOLE_SIZE(N);
+			MEM_SIZE(p) = N;
+			MEM_AVAIL(p) = 0;
+			MEM_LINK(next) = MEM_LINK(p);
+			MEM_LINK(p) = next;
+			MEM_SIZE(next) = remaining;
+			MEM_AVAIL(next) = 1;
+			mem_write_node(next, next);
+			/* split */
+
+		}
+		else 
+		{
+			MEM_AVAIL(p) = 0;
+			/* take the whole block */ 
+		}
+
 		mem_size k;
 		mem_header* temp = NULL;
 		int no_force = 1;
-		if ((MEM_SIZE(p) > mem_provisioning + MEM_WHOLE_SIZE(0)) && no_force == 1)
+		if ((MEM_SIZE(p) > mem_provisioning/* + MEM_WHOLE_SIZE(0)*/) && no_force == 1)
 		{
 			// must create new node with size remaining MEM_SIZE(p) - k
 			k = mem_provisioning;

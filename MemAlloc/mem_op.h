@@ -53,6 +53,8 @@ typedef struct mem_footer
 #define MEM_HEADER_SIZE							(sizeof(mem_header))
 #define MEM_PROVISIONING(needed_size)			((needed_size) * sizeof(mem_word_type) + sizeof(mem_footer))
 
-static MEM_ALLOC_RET_TYPE mem_write_node(mem_header* dest, mem_header* src);
+void mem_init(void);
+void* mem_alloc(mem_size N);
+void mem_free(void* ptr);
 
 
