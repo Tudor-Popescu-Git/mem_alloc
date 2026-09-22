@@ -175,6 +175,31 @@ static inline reverse_endian(void* dest, void* src, int32_t sz)
 	}
 }
 
+static inline MEM_ALLOC_RET_TYPE mem_split_nodes(mem_header** to_split, mem_header** splitted, size_t size)
+{
+	if (to_split == NULL || splitted == NULL || (*to_split) == NULL)
+	{
+		return (MEM_ALLOC_RET_TYPE)(1);
+	}
+
+	if (MEM_SIZE(*to_split) < size + MEM_WHOLE_SIZE(0))
+	{
+		*splitted = NULL;
+		return (MEM_ALLOC_RET_TYPE)(1);
+	}
+
+	MEM_AVAIL(*to_split) = 0;
+	*splitted = (uint8_t*)(*to_split) + MEM_WHOLE_SIZE(size);
+	MEM_SIZE(*splitted) = MEM_SIZE(*to_split) - MEM_WHOLE_SIZE(size);
+	MEM_AVAIL(*splitted) = 1;
+	MEM_LINK(*splitted) = MEM_LINK(*to_split);
+	MEM_LINK(*to_split) = *splitted;
+	MEM_SIZE(*to_split) = size;
+	mem_write_node(*to_split, *to_split);
+	mem_write_node(*splitted, *splitted);
+	return (MEM_ALLOC_RET_TYPE)(0);
+}
+
 void mem_init(void)
 {
 	static int called = 1;
@@ -229,58 +254,8 @@ void* mem_alloc(mem_size N)
 			continue;
 		}
 
-		if (MEM_SIZE(p) >= N + MEM_WHOLE_SIZE(0)) 
-		{
-			size_t remaining = MEM_SIZE(p) - MEM_WHOLE_SIZE(N);
-			mem_header* next = (uint8_t *)p + MEM_WHOLE_SIZE(N);
-			MEM_SIZE(p) = N;
-			MEM_AVAIL(p) = 0;
-			MEM_LINK(next) = MEM_LINK(p);
-			MEM_LINK(p) = next;
-			MEM_SIZE(next) = remaining;
-			MEM_AVAIL(next) = 1;
-			mem_write_node(next, next);
-			/* split */
-
-		}
-		else 
-		{
-			MEM_AVAIL(p) = 0;
-			/* take the whole block */ 
-		}
-
-		mem_size k;
-		mem_header* temp = NULL;
-		int no_force = 1;
-		if ((MEM_SIZE(p) > mem_provisioning/* + MEM_WHOLE_SIZE(0)*/) && no_force == 1)
-		{
-			// must create new node with size remaining MEM_SIZE(p) - k
-			k = mem_provisioning;
-			temp = (uint8_t*)(p)+k;
-			MEM_AVAIL(temp) = 1;
-			MEM_LINK(temp) = MEM_LINK(p);
-			MEM_SIZE(temp) = MEM_SIZE(p) - k;
-
-			debug_flag = 1;
-			if	(
-					(MEM_ALLOC_RET_TYPE_OK == mem_write_node(temp, temp))
-				)
-			{
-				//if new node has been created, change size
-				//(*p).size -= sizeof(mem_footer) + MEM_WHOLE_SIZE_NODE(temp);
-				//(*p).size -=  MEM_WHOLE_SIZE_NODE(temp);
-				(*p).size = N;
-				//if new node has been created, make MEM_LINK(p) point to newly created node 
-				(*p).next = temp;
-				MEM_LINK(p) = temp;
-			}
-		}
-		else
-		{
-			// if no other node can fit in the remaining space,
-			// allocate whole space to current node
-		}
-		//TODO mem_alloc doesn't write the right nodes, current node footer and header of next node are too far apart
+		mem_header* rest = NULL;
+		mem_split_nodes(&p, &rest, N);
 		MEM_AVAIL(p) = 0;
 		mem_write_node(p, p);
 		mem_header_to_footer(&p_footer, p);
@@ -298,14 +273,17 @@ void mem_free(void* ptr)
 	mem_footer* prev_footer = NULL;
 	mem_header* temp_header = NULL;
 	mem_footer* footer = NULL;
-	printf("mem_alloc_nr = %d\n", ++mem_free_nr);
-	mem_payload_to_header(&header, ptr);
-	prev_header = header;
+
 
 	if (ptr == NULL)
 	{
 		return;
 	}
+
+	printf("mem_alloc_nr = %d\n", ++mem_free_nr);
+	mem_payload_to_header(&header, ptr);
+	prev_header = header;
+
 
 	if ((mem_word_type*)header != (mem_word_type*)&mem_heap[0])
 	{
