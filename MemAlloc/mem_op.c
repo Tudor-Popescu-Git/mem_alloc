@@ -3,7 +3,7 @@
 #include "mem_op_natvis.h"
 #include <stdlib.h>
 
-#define MEM_HEAD	(&mem_heap[0])
+#define MEM_HEAD	((mem_header *)(&mem_heap[0]))
 #define MEM_CLEAR_PAYLOAD
 
 #ifdef MEM_WATERMARKS
@@ -11,6 +11,12 @@ const uint32_t mem_header_start = 0x11111111;
 const uint32_t mem_header_end = 0x11111111;
 const uint32_t mem_footer_start = 0x22222222;
 const uint32_t mem_footer_end = 0x22222222;
+#endif
+
+#if defined(_MSC_VER)
+#define MEM_DEBUG_API __declspec(noinline)
+#else
+#define MEM_DEBUG_API __attribute__((noinline, used))
 #endif
 
 #define MALLOC_SIZE (0x10)
@@ -35,10 +41,41 @@ mem_footer * first_alloc_node_footer;
 mem_footer * mem_footer_watch;
 mem_bool     mem_check;
 
+static inline MEM_ALLOC_RET_TYPE mem_payload_to_header(mem_header** header, void* payload);
+static inline MEM_ALLOC_RET_TYPE mem_coalesce_headers(mem_header** header1, mem_header* header2);
+static inline MEM_ALLOC_RET_TYPE mem_header_to_prev_footer(mem_footer** footer, mem_header* header);
+static inline MEM_ALLOC_RET_TYPE mem_header_to_footer(mem_footer** footer, mem_header* header);
+static inline MEM_ALLOC_RET_TYPE mem_footer_to_prev_header(mem_header** header, mem_footer* footer);
+static inline MEM_ALLOC_RET_TYPE mem_payload_to_footer(void* payload, mem_footer** footer);
+MEM_DEBUG_API MEM_ALLOC_RET_TYPE mem_footer_header_check(mem_bool* check, mem_footer* footer, mem_header* header);
+static inline MEM_ALLOC_RET_TYPE mem_write_footer(mem_header* dest);
+static inline MEM_ALLOC_RET_TYPE mem_write_header(mem_header* mem_header_dest, mem_header* mem_header_src);
+static inline MEM_ALLOC_RET_TYPE mem_write_node(mem_header* dest_node, mem_header* src_node);
+static inline MEM_ALLOC_RET_TYPE mem_write_node_with_next(mem_header* dest_node, mem_header* src_node, mem_header* next_node);
+static inline MEM_ALLOC_RET_TYPE mem_fill(mem_header* dest, uint8_t byte);
+static inline void               reverse_endian(void* dest, void* src, mem_size sz);
+static inline MEM_ALLOC_RET_TYPE mem_split_nodes(mem_header** to_split, mem_header** splitted, size_t size);
+static inline void mem_is_valid_pointer(void* payload, int* is_valid);
+int                              test1_walk_til_end(void);
+
 static inline MEM_ALLOC_RET_TYPE mem_payload_to_header(mem_header** header, void* payload)
 {
 	MEM_ALLOC_RET_TYPE ret_val = (MEM_ALLOC_RET_TYPE)(0);
-	*header = (uint8_t*)payload - sizeof(mem_header);
+	*header = (mem_header *)((uint8_t*)payload - sizeof(mem_header));
+	return ret_val;
+}
+
+static inline MEM_ALLOC_RET_TYPE mem_payload_to_footer(void* payload, mem_footer** footer)
+{
+	MEM_ALLOC_RET_TYPE ret_val = (MEM_ALLOC_RET_TYPE)(0);
+	if (footer == NULL)
+	{
+		ret_val = 1;
+		return ret_val;
+	}
+	mem_header* header;
+	mem_payload_to_header(&header, payload);
+	*footer = (mem_footer *)((uint8_t *)header + sizeof(mem_header) + header->size * sizeof(mem_word_type));
 	return ret_val;
 }
 
@@ -88,7 +125,7 @@ static inline MEM_ALLOC_RET_TYPE mem_footer_to_prev_header(mem_header ** header,
 	return ret_val;
 }
 
-__declspec(dllexport) MEM_ALLOC_RET_TYPE mem_footer_header_check(mem_bool * check, mem_footer * footer, mem_header * header)
+MEM_DEBUG_API MEM_ALLOC_RET_TYPE mem_footer_header_check(mem_bool * check, mem_footer * footer, mem_header * header)
 {
 	MEM_ALLOC_RET_TYPE ret_val = (MEM_ALLOC_RET_TYPE)(0);
 	mem_footer * i_footer;
@@ -160,18 +197,18 @@ static inline MEM_ALLOC_RET_TYPE mem_write_node_with_next(mem_header * dest_node
 
 static inline MEM_ALLOC_RET_TYPE mem_fill(mem_header* dest, uint8_t byte)
 {
-	for (uint32_t i = 0; i < dest->size; i++)
+	for (size_t i = 0; i < dest->size; i++)
 	{
 		dest->start[i] = byte;
 	}
 	return (MEM_ALLOC_RET_TYPE)(0);
 }
 
-static inline reverse_endian(void* dest, void* src, int32_t sz)
+static inline void reverse_endian(void* dest, void* src, mem_size sz)
 {
-	for (int32_t i = sz - 1; i >= 0; i--)
+	for (mem_size i = 0; i < sz; ++i)
 	{
-		((uint8_t*)dest)[i - sz] = ((uint8_t*)(src))[i];
+		((uint8_t*)dest)[i] = ((uint8_t*)(src))[sz - 1 - i];
 	}
 }
 
@@ -189,7 +226,7 @@ static inline MEM_ALLOC_RET_TYPE mem_split_nodes(mem_header** to_split, mem_head
 	}
 
 	MEM_AVAIL(*to_split) = 0;
-	*splitted = (uint8_t*)(*to_split) + MEM_WHOLE_SIZE(size);
+	*splitted = (mem_header *)((uint8_t*)(*to_split) + MEM_WHOLE_SIZE(size));
 	MEM_SIZE(*splitted) = MEM_SIZE(*to_split) - MEM_WHOLE_SIZE(size);
 	MEM_AVAIL(*splitted) = 1;
 	MEM_LINK(*splitted) = MEM_LINK(*to_split);
@@ -200,10 +237,42 @@ static inline MEM_ALLOC_RET_TYPE mem_split_nodes(mem_header** to_split, mem_head
 	return (MEM_ALLOC_RET_TYPE)(0);
 }
 
+static inline void mem_is_valid_pointer(void* payload, int* is_valid)
+{
+	mem_header* header = NULL;
+	mem_word_type* _payload = (mem_word_type*)payload;
+
+	if (payload == NULL || is_valid == NULL)
+	{
+		return;
+	}
+
+	*is_valid = 0;
+
+	if ((_payload >= &mem_heap[0] + sizeof(mem_header)) && (_payload < &mem_heap[MEM_HEAP_SIZE]))
+	{
+		mem_payload_to_header(&header, _payload);
+#ifdef MEM_WATERMARKS
+		if ((header->mem_header_start != mem_header_start) || (header->mem_header_end != mem_header_end))
+		{
+			*is_valid = 0;
+			return;
+		}
+#endif
+		*is_valid = 1;
+		return;
+	}
+	else
+	{
+		*is_valid = 0;
+		return;
+	}
+}
+
 void mem_init(void)
 {
 	static int called = 1;
-	printf("called %d\n", called++);
+	MEM_DEBUG_PRINTF("called %d\n", called++);
 	mem_lambda_header = (mem_header*)((uint8_t*)(&mem_heap[MEM_HEAP_SIZE - 1]) - MEM_WHOLE_SIZE(0));
 	mem_lambda_footer = (mem_footer*)MEM_FOOTER_ADDR(mem_lambda_header);
 	mem_lambda_header->avail = 0;
@@ -217,7 +286,7 @@ void mem_init(void)
 	mem_head = ((mem_header*)&mem_heap[0]);
 	mem_head->avail = 1;
 	mem_head->next = mem_lambda_header;
-	mem_write_node_with_next((uint8_t*)(&mem_heap[0]), (uint8_t*)mem_head, mem_lambda_header);
+	mem_write_node_with_next((mem_header*)(&mem_heap[0]), (mem_header *)mem_head, mem_lambda_header);
 	mem_footer_header_check(&mem_check, mem_lambda_footer, mem_lambda_header);
 }
 
@@ -226,8 +295,12 @@ void* mem_alloc(mem_size N)
 	mem_word_type * ret_val = NULL;
 	mem_header * p = MEM_HEAD;
 	mem_footer * p_footer = NULL;
-	printf("mem_alloc_nr = %d, size requested = %d\n", mem_alloc_nr, N);
+	MEM_DEBUG_PRINTF("mem_alloc_nr = %zu, size requested = %" MEM_SIZE_SPECIFIER "\n", mem_alloc_nr, N);
 	mem_alloc_nr++;
+	if (N > MEM_HEAP_SIZE)
+	{
+		return NULL;
+	}
 	size_t mem_provisioning = MEM_WHOLE_SIZE(N);
 	mem_provisioning = (sizeof(mem_header) + sizeof(mem_word_type) * (N) + sizeof(mem_footer));
 	if (mem_alloc_nr == 2058)
@@ -273,17 +346,30 @@ void mem_free(void* ptr)
 	mem_footer* prev_footer = NULL;
 	mem_header* temp_header = NULL;
 	mem_footer* footer = NULL;
-
+	int is_valid = 0;
 
 	if (ptr == NULL)
 	{
 		return;
 	}
 
-	printf("mem_alloc_nr = %d\n", ++mem_free_nr);
-	mem_payload_to_header(&header, ptr);
-	prev_header = header;
+	mem_is_valid_pointer(ptr, &is_valid);
 
+	if (is_valid == 0)
+	{
+		return;
+	}
+
+	MEM_DEBUG_PRINTF("mem_alloc_nr = %" MEM_SIZE_SPECIFIER "\n", ++mem_free_nr);
+
+	mem_payload_to_header(&header, ptr);
+
+	if ((header != NULL) && (header->avail == 1))
+	{
+		return;
+	}
+
+	prev_header = header;
 
 	if ((mem_word_type*)header != (mem_word_type*)&mem_heap[0])
 	{
@@ -313,7 +399,7 @@ void mem_free(void* ptr)
 		{
 			MEM_AVAIL(header) = 1;
 			mem_coalesce_headers(&temp_header, MEM_LINK(header));
-			if (temp_header->next == ((uint8_t*)temp_header + next_node_coalesce))
+			if (temp_header->next == (mem_header *)((uint8_t*)temp_header + next_node_coalesce))
 			{
 				
 			}
@@ -330,11 +416,12 @@ void mem_free(void* ptr)
 
 int test1_walk_til_end()
 {
-	mem_header* start = &mem_heap[0];
+	mem_header* start = (mem_header *) (&mem_heap[0]);
 	while (start != mem_lambda_header)
 	{
 		start = start->next;
 	}
+	return 0;
 }
 /*
 int main()
@@ -349,11 +436,11 @@ int main()
 	mem_free(ptr1);
 	mem_free(ptr3);
 	//uint8_t* ptr_header = ptr - sizeof(*dummy);
-	//printf("AICI %zu\n", sizeof(dummy->avail));
-	//printf("%zu\n", sizeof(dummy->next));
-	//printf("%zu\n", sizeof(dummy->size));
-	//printf("%zu\n", sizeof(&dummy->start[0]));
-	printf("%p", mem_available);
+	//MEM_DEBUG_PRINTF("AICI %zu\n", sizeof(dummy->avail));
+	//MEM_DEBUG_PRINTF("%zu\n", sizeof(dummy->next));
+	//MEM_DEBUG_PRINTF("%zu\n", sizeof(dummy->size));
+	//MEM_DEBUG_PRINTF("%zu\n", sizeof(&dummy->start[0]));
+	MEM_DEBUG_PRINTF("%p", mem_available);
 	scanf_s("%c", &c);
 	return 0;
 }
