@@ -585,7 +585,7 @@ static void test_checkerboard(void)
     n = fill(32);
     if (n == 2)
     {
-        volatile int x;
+        volatile int x = 0;
         x = x + 1;
     }
     REQUIRE(n >= 4, "only %zu blocks fit", n);
