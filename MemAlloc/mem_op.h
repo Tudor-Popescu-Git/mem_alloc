@@ -2,11 +2,15 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 #ifndef _MSC_VER
 #define __declspec(x)
 #endif
 
-typedef int32_t	MEM_ALLOC_RET_TYPE;
+	typedef int32_t	MEM_ALLOC_RET_TYPE;
 
 #define MEM_HEAP_SIZE (512UL)
 #define MEM_ALLOC_RET_TYPE_OK	((MEM_ALLOC_RET_TYPE)0)
@@ -21,41 +25,41 @@ typedef int32_t	MEM_ALLOC_RET_TYPE;
 #define MEM_DEBUG_PRINTF(...) do { }while(0)
 #endif
 
-typedef size_t		mem_size;
-typedef uint8_t		mem_word_type;
-typedef uint8_t		mem_avail;
-typedef uint8_t		mem_bool;
+	typedef size_t		mem_size;
+	typedef uint8_t		mem_word_type;
+	typedef uint8_t		mem_avail;
+	typedef uint8_t		mem_bool;
 
 #define MEM_SIZE_SPECIFIER "zu"
 
 #pragma pack(push, 1)
-typedef struct mem_header
-{
+	typedef struct mem_header
+	{
 #ifdef MEM_WATERMARKS
-	uint32_t mem_header_start;
+		uint32_t mem_header_start;
 #endif
-	struct mem_header *		next;
-	mem_size				size;
-	mem_avail				avail;
+		struct mem_header* next;
+		mem_size				size;
+		mem_avail				avail;
 #ifdef MEM_WATERMARKS
-	uint32_t mem_header_end;
+		uint32_t mem_header_end;
 #endif
-	mem_word_type	start[];
-}	mem_header, *	mem_header_ptr;
+		mem_word_type	start[];
+	}	mem_header, * mem_header_ptr;
 #pragma pack(pop)
 
 #pragma pack(push, 1)
-typedef struct mem_footer
-{
+	typedef struct mem_footer
+	{
 #ifdef MEM_WATERMARKS
-	uint32_t mem_footer_start;
+		uint32_t mem_footer_start;
 #endif
-	mem_size	size;
-	mem_avail	avail;
+		mem_size	size;
+		mem_avail	avail;
 #ifdef MEM_WATERMARKS
-	uint32_t mem_footer_end;
+		uint32_t mem_footer_end;
 #endif
-}	mem_footer;
+	}	mem_footer;
 #pragma pack(pop)
 
 #define MEM_LOC(node)							(*(node))
@@ -68,8 +72,10 @@ typedef struct mem_footer
 #define MEM_HEADER_SIZE							(sizeof(mem_header))
 #define MEM_PROVISIONING(needed_size)			((needed_size) * sizeof(mem_word_type) + sizeof(mem_footer))
 
-void mem_init(void);
-void* mem_alloc(mem_size N);
-void mem_free(void* ptr);
+	void mem_init(void);
+	void* mem_alloc(mem_size N);
+	void mem_free(void* ptr);
 
-
+#if defined(__cplusplus)
+}
+#endif

@@ -1,7 +1,10 @@
 #include <stdio.h>
 #include "mem_op.h"
-#include "mem_op_natvis.h"
 #include <stdlib.h>
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 #define MEM_HEAD	((mem_header *)(&mem_heap[0]))
 #define MEM_CLEAR_PAYLOAD
@@ -445,3 +448,6 @@ int main()
 	return 0;
 }
 */
+#if defined(__cplusplus)
+}
+#endif
