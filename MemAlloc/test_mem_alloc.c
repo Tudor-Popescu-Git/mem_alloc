@@ -933,6 +933,8 @@ int main(int argc, char **argv)
     printf("seed %llu, %zu stress ops, alignment %zu\n\n",
            (unsigned long long)g_seed, g_stress_ops, (size_t)MEM_ALIGNMENT);
 
+    printf("built with %s \n", MEM_COMPILER);
+
     printf("basic\n");
     RUN(test_init_then_alloc);
     RUN(test_alloc_zero);

@@ -8,6 +8,14 @@
 #define __declspec(x)
 #endif
 
+#if defined(__clang__)
+#define MEM_COMPILER "clang " __clang_version__
+#elif defined(__GNUC__)
+#define MEM_COMPILER "gcc " __VERSION__
+#elif defined(_MSC_VER)
+#define MEM_COMPILER "msvc"
+#endif
+
 typedef int32_t	MEM_ALLOC_RET_TYPE;
 
 #define MEM_HEAP_SIZE (512UL)
@@ -15,9 +23,9 @@ typedef int32_t	MEM_ALLOC_RET_TYPE;
 #define MEM_ALLOC_RET_TYPE_NOK	((MEM_ALLOC_RET_TYPE)1)
 #define MEM_WATERMARKS
 #define MEM_CLEAR_PAYLOAD
-#define MEM_DBG_PRINT_IFDEF
+#define MEM_DEBUG_PRINT_ENABLE (0)
 
-#ifdef MEM_DBG_PRINT_IFDEF
+#if MEM_DEBUG_PRINT_ENABLE != 0
 #define MEM_DEBUG_PRINTF(...) fprintf( stderr, __VA_ARGS__ )
 #else
 #define MEM_DEBUG_PRINTF(...) do { }while(0)

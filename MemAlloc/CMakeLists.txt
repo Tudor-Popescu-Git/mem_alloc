@@ -4,6 +4,12 @@ add_executable (MemAlloc
     "mem_op.c"
     "test_mem_alloc.c")
 
+if(MSVC)
+    target_compile_options(MemAlloc PRIVATE /we4033 /we4715)
+else()
+    target_compile_options(MemAlloc PRIVATE -Werror=return-type)
+endif()
+
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET MemAlloc PROPERTY C_STANDARD 11)
 endif()

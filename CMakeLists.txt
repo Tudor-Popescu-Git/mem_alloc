@@ -31,5 +31,11 @@ if(MSVC)
     string(REGEX REPLACE "/RTC1" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
 endif()
 
+message(STATUS "C compiler: ${CMAKE_C_COMPILER_ID} ${CMAKE_C_COMPILER_VERSION} (${CMAKE_C_COMPILER})")
+
+if (UNIX AND NOT CMAKE_C_COMPILER_ID MATCHES "Clang")
+    message(FATAL_ERROR "Expected Clang, got ${CMAKE_C_COMPILER_ID}. Install clang and delete the CMake cache.")
+endif()
+
 # Include sub-projects.
 add_subdirectory ("MemAlloc")

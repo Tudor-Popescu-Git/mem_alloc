@@ -130,6 +130,11 @@ MEM_DEBUG_API MEM_ALLOC_RET_TYPE mem_footer_header_check(mem_bool * check, mem_f
 	mem_footer * i_footer;
 	mem_header * i_header;
 	mem_header_to_footer(&i_footer, header);
+	*check = (footer == i_footer);
+	if (*check == 0)
+	{
+		return (ret_val = MEM_ALLOC_RET_TYPE_NOK);
+	}
 	mem_footer_to_prev_header(&i_header, i_footer);
 	*check = (header == i_header);
 	return ret_val;
