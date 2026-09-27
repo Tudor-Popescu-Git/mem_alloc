@@ -2,8 +2,7 @@
  * test_mem_alloc.c - tests for a linked-list allocator over a static array.
  *
  * COMPILE AS C. Your allocator is C, so build this as C too: name it .c, or
- * pass /Tc (MSVC) / -x c (gcc, clang). It also compiles as C++ if you ever
- * want that - set MEM_ALLOCATOR_IS_C=1 so the linker finds your C symbols.
+ * pass /Tc (MSVC) / -x c (gcc, clang).
  *
  * The point of this file is to make a broken allocator CRASH, at the fault,
  * rather than quietly hand back bad memory. Every allocated block is written
@@ -47,19 +46,6 @@
 #include <stddef.h>
 #include <stdint.h>
 #include "mem_op.h"
-
-/* ---- your allocator ----------------------------------------------------- */
-
-/*
- * Declared here so the file does not depend on your header's name. If you
- * would rather include your header, delete this block and include it.
- *
- * Set MEM_ALLOCATOR_IS_C to 1 if your allocator lives in a .c file and this
- * file is built as .cpp. Wrong setting = "unresolved external symbol" at link.
- */
-#ifndef MEM_ALLOCATOR_IS_C
-#define MEM_ALLOCATOR_IS_C 0
-#endif
 
 /* ---- configuration ------------------------------------------------------ */
 
