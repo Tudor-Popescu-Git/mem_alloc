@@ -61,16 +61,6 @@
 #define MEM_ALLOCATOR_IS_C 0
 #endif
 
-#if defined(__cplusplus) && MEM_ALLOCATOR_IS_C
-extern "C" {
-#endif
-void  mem_init(void);
-void *mem_alloc(size_t size);
-void  mem_free(void *ptr);
-#if defined(__cplusplus) && MEM_ALLOCATOR_IS_C
-}
-#endif
-
 /* ---- configuration ------------------------------------------------------ */
 
 /* Alignment every returned pointer must meet. Lower it to match your design. */

@@ -1,1 +1,0 @@
-.\Test-ProcessAccess.ps1 -ProcessName MemAlloc.exe
