@@ -1,6 +1,7 @@
 ﻿# MemAlloc sub-project: the allocator plus its test harness.
 
 add_executable (MemAlloc
+    "main.c"
     "mem_op.c"
     "test_mem_alloc.c")
 

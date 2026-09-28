@@ -12,9 +12,9 @@
  * or with AddressSanitizer and read the top stack frame.
  *
  * RUN
- *     test_mem_alloc.exe                  default seed, 200000 stress ops
- *     test_mem_alloc.exe 12345            specific seed
- *     test_mem_alloc.exe 12345 2000000    seed and stress op count
+ *     MemAlloc.exe                  default seed, 200000 stress ops
+ *     MemAlloc.exe 12345            specific seed
+ *     MemAlloc.exe 12345 2000000    seed and stress op count
  *
  * A failing run prints the exact command line that reproduces it.
  *
@@ -46,6 +46,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include "mem_op.h"
+#include "test_mem_alloc.h"
 
 /* ---- configuration ------------------------------------------------------ */
 
@@ -853,8 +854,8 @@ static void test_free_interior(void)
 
 /* ================================================================ stress */
 
-static uint64_t g_seed       = 0x5EED1234;
-static size_t   g_stress_ops = 200000;
+static uint64_t g_seed = MEM_TEST_DEFAULT_SEED;
+static size_t   g_stress_ops = MEM_TEST_DEFAULT_STRESS_OPS;
 
 static void test_random_stress(void)
 {
@@ -925,15 +926,15 @@ static void test_random_stress(void)
 
 /* ================================================================== main */
 
-int main(int argc, char **argv)
+int mem_test_run_all(uint64_t seed, size_t stress_ops)
 {
-    if (argc > 1) g_seed       = strtoull(argv[1], NULL, 0);
-    if (argc > 2) g_stress_ops = (size_t)strtoull(argv[2], NULL, 0);
+    g_seed = seed;
+    g_stress_ops = stress_ops;
+    g_checks = 0;
+    g_failures = 0;
 
     printf("seed %llu, %zu stress ops, alignment %zu\n\n",
            (unsigned long long)g_seed, g_stress_ops, (size_t)MEM_ALIGNMENT);
-
-    printf("built with %s \n", MEM_COMPILER);
 
     printf("basic\n");
     RUN(test_init_then_alloc);
@@ -976,11 +977,8 @@ int main(int argc, char **argv)
     RUN(test_random_stress);
 
     printf("\n%d checks, %d failed\n", g_checks, g_failures);
-    if (g_failures) {
-        printf("reproduce: %s %llu %zu\n",
-               argv[0], (unsigned long long)g_seed, g_stress_ops);
-    }
-    return g_failures ? 1 : 0;
+
+    return g_failures;
 }
 
 /*

@@ -427,25 +427,3 @@ int test1_walk_til_end()
 	}
 	return 0;
 }
-/*
-int main()
-{
-	char c;
-	mem_init();
-	mem_header* dummy;
-	uint8_t* ptr1 = (uint8_t*)mem_alloc(0x10);
-	uint8_t* ptr2 = (uint8_t*)mem_alloc(0x10);
-	uint8_t* ptr3 = (uint8_t*)mem_alloc(0x10);
-	mem_free(ptr2);
-	mem_free(ptr1);
-	mem_free(ptr3);
-	//uint8_t* ptr_header = ptr - sizeof(*dummy);
-	//MEM_DEBUG_PRINTF("AICI %zu\n", sizeof(dummy->avail));
-	//MEM_DEBUG_PRINTF("%zu\n", sizeof(dummy->next));
-	//MEM_DEBUG_PRINTF("%zu\n", sizeof(dummy->size));
-	//MEM_DEBUG_PRINTF("%zu\n", sizeof(&dummy->start[0]));
-	MEM_DEBUG_PRINTF("%p", mem_available);
-	scanf_s("%c", &c);
-	return 0;
-}
-*/
