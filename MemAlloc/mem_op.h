@@ -27,6 +27,11 @@
 #define MEM_DEBUG_PRINTF(...) do { }while(0)
 #endif
 
+#if defined(_MSC_VER) && !defined(__clang__) && !defined(__cplusplus)
+/* MSVC's <stddef.h> does not declare max_align_t in C mode, so build the
+   same thing from a union of the basic types. Everywhere else use the
+   standard type: on some targets (32-bit x86) its alignment is larger
+   than any of the basic types, and malloc guarantees that larger value. */
 typedef union
 {
 	long double	ld;
@@ -35,6 +40,9 @@ typedef union
 	void* p;
 	void		(*fp)(void);
 }	mem_max_align_t;
+#else
+typedef max_align_t	mem_max_align_t;
+#endif
 
 
 #define MEM_ALIGN        (alignof(mem_max_align_t))

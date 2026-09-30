@@ -50,7 +50,8 @@
 
 /* ---- configuration ------------------------------------------------------ */
 
-/* Alignment every returned pointer must meet. Lower it to match your design. */
+/* Alignment every returned pointer must meet. Defaults to the allocator's own
+   alignment (MEM_ALIGN); override with -DMEM_ALIGNMENT=n to test another value. */
 #ifndef MEM_ALIGNMENT
 #define MEM_ALIGNMENT MEM_ALIGN
 #endif
@@ -573,13 +574,21 @@ static void test_checkerboard(void)
         g_ptrs[i] = NULL;
     }
 
-    /* The largest hole is 32 bytes plus at most one header's worth of
-       rounding. Twice that cannot fit unless non-adjacent holes were
-       merged, which would mean handing out memory that is still in use. */
+    /* A 96-byte request may legitimately succeed when a freed block merges
+       with free space next to it (for example the leftover after the last
+       block, which exists on some layouts). What must never happen is that
+       the returned block overlaps a block that is still in use. */
     p = mem_alloc(64 + 32);
-    CHECK(p == NULL, "a 96-byte block fit where only 32-byte holes exist. "
-                     "Non-adjacent free blocks were merged.");
-    if (p) mem_free(p);
+    if (p) {
+        for (i = 1; i < n; i += 2) {
+            const unsigned char *a = (const unsigned char *)p;
+            const unsigned char *b = (const unsigned char *)g_ptrs[i];
+            CHECK(a + 96 <= b || b + 32 <= a,
+                  "a 96-byte block overlaps live block %zu. "
+                  "Non-adjacent free blocks were merged.", i);
+        }
+        mem_free(p);
+    }
 
     p = mem_alloc(32);
     CHECK(p != NULL, "a 32-byte request failed although 32-byte holes exist");
