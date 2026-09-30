@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include <stddef.h>
+#include <stdalign.h>
 
 
 
@@ -30,9 +31,9 @@ typedef uint8_t		mem_bool;
 
 #define MEM_SIZE_SPECIFIER "zu"
 
-#pragma pack(push, 1)
 typedef struct mem_header
 {
+
 #ifdef MEM_WATERMARKS
 	uint32_t mem_header_start;
 #endif
@@ -42,23 +43,22 @@ typedef struct mem_header
 #ifdef MEM_WATERMARKS
 	uint32_t mem_header_end;
 #endif
+	alignas(max_align_t)
 	mem_word_type	start[];
 }	mem_header, * mem_header_ptr;
-#pragma pack(pop)
 
-#pragma pack(push, 1)
 typedef struct mem_footer
 {
 #ifdef MEM_WATERMARKS
 	uint32_t mem_footer_start;
 #endif
+	alignas(max_align_t)
 	mem_size	size;
 	mem_avail	avail;
 #ifdef MEM_WATERMARKS
 	uint32_t mem_footer_end;
 #endif
 }	mem_footer;
-#pragma pack(pop)
 
 #define MEM_LOC(node)							(*(node))
 #define MEM_LINK(node)							((node)->next)
