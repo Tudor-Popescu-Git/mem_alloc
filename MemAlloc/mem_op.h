@@ -10,7 +10,6 @@
 #define MEM_WATERMARKS
 #define MEM_CLEAR_PAYLOAD
 #define MEM_DEBUG_PRINT_ENABLE (0)
-#define MEM_ALIGN_UP(x)  (((x) / MEM_ALIGN + ((x) % MEM_ALIGN != 0)) * MEM_ALIGN)
 #define MEM_SIZE_SPECIFIER "zu"
 #define MEM_LOC(node)							(*(node))
 #define MEM_LINK(node)							((node)->next)
@@ -27,6 +26,19 @@
 #else
 #define MEM_DEBUG_PRINTF(...) do { }while(0)
 #endif
+
+typedef union
+{
+	long double	ld;
+	long long	ll;
+	double		d;
+	void* p;
+	void		(*fp)(void);
+}	mem_max_align_t;
+
+
+#define MEM_ALIGN        (alignof(mem_max_align_t))
+#define MEM_ALIGN_UP(x)  (((x) / MEM_ALIGN + ((x) % MEM_ALIGN != 0)) * MEM_ALIGN)
 
 typedef int32_t	MEM_ALLOC_RET_TYPE;
 typedef size_t		mem_size;
@@ -46,7 +58,7 @@ typedef struct mem_header
 #ifdef MEM_WATERMARKS
 	uint32_t mem_header_end;
 #endif
-	alignas(max_align_t)
+	alignas(mem_max_align_t)
 	mem_word_type	start[];
 }	mem_header, * mem_header_ptr;
 
@@ -55,7 +67,7 @@ typedef struct mem_footer
 #ifdef MEM_WATERMARKS
 	uint32_t mem_footer_start;
 #endif
-	alignas(max_align_t)
+	alignas(mem_max_align_t)
 	mem_size	size;
 	mem_avail	avail;
 #ifdef MEM_WATERMARKS
@@ -66,9 +78,9 @@ typedef struct mem_footer
 
 _Static_assert(sizeof(mem_header) == offsetof(mem_header, start),
 	"payload must start right after the header");
-_Static_assert(sizeof(mem_header) % alignof(max_align_t) == 0,
+_Static_assert(sizeof(mem_header) % alignof(mem_max_align_t) == 0,
 	"header size must be a multiple of the alignment");
-_Static_assert(sizeof(mem_footer) % alignof(max_align_t) == 0,
+_Static_assert(sizeof(mem_footer) % alignof(mem_max_align_t) == 0,
 	"footer size must be a multiple of the alignment");
 
 

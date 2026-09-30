@@ -28,12 +28,7 @@ int debug_flag = 0;
 static size_t mem_alloc_nr = 0;
 static size_t mem_free_nr = 0;
 
-
-#define MEM_ALIGN (alignof(max_align_t))
-
-alignas(max_align_t) mem_word_type mem_heap[MEM_HEAP_SIZE] = { 0 };
-
-mem_word_type mem_heap_big_endian[MEM_HEAP_SIZE] = { 0 };
+alignas(mem_max_align_t) mem_word_type mem_heap[MEM_HEAP_SIZE] = { 0 };
 
 mem_header * mem_head;
 mem_header * mem_available;
