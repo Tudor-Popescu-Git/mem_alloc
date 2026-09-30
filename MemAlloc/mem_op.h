@@ -2,7 +2,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdalign.h>
-
+#include <assert.h>
 
 #define MEM_HEAP_SIZE (512UL)
 #define MEM_ALLOC_RET_TYPE_OK	((MEM_ALLOC_RET_TYPE)0)
@@ -76,11 +76,11 @@ typedef struct mem_footer
 }	mem_footer;
 
 
-_Static_assert(sizeof(mem_header) == offsetof(mem_header, start),
+static_assert(sizeof(mem_header) == offsetof(mem_header, start),
 	"payload must start right after the header");
-_Static_assert(sizeof(mem_header) % alignof(mem_max_align_t) == 0,
+static_assert(sizeof(mem_header) % alignof(mem_max_align_t) == 0,
 	"header size must be a multiple of the alignment");
-_Static_assert(sizeof(mem_footer) % alignof(mem_max_align_t) == 0,
+static_assert(sizeof(mem_footer) % alignof(mem_max_align_t) == 0,
 	"footer size must be a multiple of the alignment");
 
 

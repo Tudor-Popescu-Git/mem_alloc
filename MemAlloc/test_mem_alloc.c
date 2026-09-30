@@ -52,7 +52,7 @@
 
 /* Alignment every returned pointer must meet. Lower it to match your design. */
 #ifndef MEM_ALIGNMENT
-#define MEM_ALIGNMENT 1
+#define MEM_ALIGNMENT MEM_ALIGN
 #endif
 
 /* Your static array's size, from your header: #define MEM_HEAP_SIZE (256UL) */
