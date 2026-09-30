@@ -17,6 +17,7 @@ typedef int32_t	MEM_ALLOC_RET_TYPE;
 #define MEM_WATERMARKS
 #define MEM_CLEAR_PAYLOAD
 #define MEM_DEBUG_PRINT_ENABLE (0)
+#define MEM_ALIGN_UP(x)  (((x) / MEM_ALIGN + ((x) % MEM_ALIGN != 0)) * MEM_ALIGN)
 
 #if MEM_DEBUG_PRINT_ENABLE != 0
 #define MEM_DEBUG_PRINTF(...) fprintf( stderr, __VA_ARGS__ )
@@ -59,6 +60,14 @@ typedef struct mem_footer
 	uint32_t mem_footer_end;
 #endif
 }	mem_footer;
+
+
+_Static_assert(sizeof(mem_header) == offsetof(mem_header, start),
+	"payload must start right after the header");
+_Static_assert(sizeof(mem_header) % alignof(max_align_t) == 0,
+	"header size must be a multiple of the alignment");
+_Static_assert(sizeof(mem_footer) % alignof(max_align_t) == 0,
+	"footer size must be a multiple of the alignment");
 
 #define MEM_LOC(node)							(*(node))
 #define MEM_LINK(node)							((node)->next)

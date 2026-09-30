@@ -31,13 +31,6 @@ static size_t mem_free_nr = 0;
 
 #define MEM_ALIGN (alignof(max_align_t))
 
-_Static_assert(sizeof(mem_header) == offsetof(mem_header, start),
-	"payload must start right after the header");
-_Static_assert(sizeof(mem_header) % alignof(max_align_t) == 0,
-	"header size must be a multiple of the alignment");
-_Static_assert(sizeof(mem_footer) % alignof(max_align_t) == 0,
-	"footer size must be a multiple of the alignment");
-
 alignas(max_align_t) mem_word_type mem_heap[MEM_HEAP_SIZE] = { 0 };
 
 mem_word_type mem_heap_big_endian[MEM_HEAP_SIZE] = { 0 };
@@ -289,9 +282,9 @@ void mem_init(void)
 {
 	static int called = 1;
 	MEM_DEBUG_PRINTF("called %d\n", called++);
-	printf("mem_heap at %p, mod %zu = %zu\n",
+	MEM_DEBUG_PRINTF("mem_heap at %p, mod %zu = %zu\n",
 		(void*)mem_heap, (size_t)MEM_ALIGN, (size_t)((uintptr_t)mem_heap % MEM_ALIGN));
-	mem_lambda_header = (mem_header*)((uint8_t*)(&mem_heap[MEM_HEAP_SIZE - 1]) - MEM_WHOLE_SIZE(0));
+	mem_lambda_header = (mem_header*)((uint8_t*)(&mem_heap[MEM_HEAP_SIZE]) - MEM_WHOLE_SIZE(0));
 	mem_lambda_footer = (mem_footer*)MEM_FOOTER_ADDR(mem_lambda_header);
 	mem_lambda_header->avail = 0;
 	mem_lambda_header->next = NULL;
@@ -313,12 +306,17 @@ void* mem_alloc(mem_size N)
 	mem_word_type * ret_val = NULL;
 	mem_header * p = MEM_HEAD;
 	mem_footer * p_footer = NULL;
+
 	MEM_DEBUG_PRINTF("mem_alloc_nr = %zu, size requested = %" MEM_SIZE_SPECIFIER "\n", mem_alloc_nr, N);
 	mem_alloc_nr++;
+
 	if (N > MEM_HEAP_SIZE)
 	{
 		return NULL;
 	}
+
+	N = MEM_ALIGN_UP(N);
+
 	size_t mem_provisioning = MEM_WHOLE_SIZE(N);
 	mem_provisioning = (sizeof(mem_header) + sizeof(mem_word_type) * (N) + sizeof(mem_footer));
 	if (mem_alloc_nr == 2058)
