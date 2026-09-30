@@ -4,13 +4,6 @@
 #include <stdalign.h>
 
 
-
-#ifndef _MSC_VER
-#define __declspec(x)
-#endif
-
-typedef int32_t	MEM_ALLOC_RET_TYPE;
-
 #define MEM_HEAP_SIZE (512UL)
 #define MEM_ALLOC_RET_TYPE_OK	((MEM_ALLOC_RET_TYPE)0)
 #define MEM_ALLOC_RET_TYPE_NOK	((MEM_ALLOC_RET_TYPE)1)
@@ -18,6 +11,16 @@ typedef int32_t	MEM_ALLOC_RET_TYPE;
 #define MEM_CLEAR_PAYLOAD
 #define MEM_DEBUG_PRINT_ENABLE (0)
 #define MEM_ALIGN_UP(x)  (((x) / MEM_ALIGN + ((x) % MEM_ALIGN != 0)) * MEM_ALIGN)
+#define MEM_SIZE_SPECIFIER "zu"
+#define MEM_LOC(node)							(*(node))
+#define MEM_LINK(node)							((node)->next)
+#define MEM_SIZE(node)							((node)->size)
+#define MEM_AVAIL(node)							((node)->avail)
+#define MEM_FOOTER_ADDR(header)					((mem_footer *)((uint8_t *)(header) + sizeof(*(header)) + ((header)->size * sizeof(mem_word_type))))
+#define MEM_WHOLE_SIZE_NODE(node)				(sizeof(mem_header) + sizeof(mem_word_type) * ((node)->size) + sizeof(mem_footer))
+#define MEM_WHOLE_SIZE(size)					(sizeof(mem_header) + sizeof(mem_word_type) * (size) + sizeof(mem_footer))
+#define MEM_HEADER_SIZE							(sizeof(mem_header))
+#define MEM_PROVISIONING(needed_size)			((needed_size) * sizeof(mem_word_type) + sizeof(mem_footer))
 
 #if MEM_DEBUG_PRINT_ENABLE != 0
 #define MEM_DEBUG_PRINTF(...) fprintf( stderr, __VA_ARGS__ )
@@ -25,16 +28,15 @@ typedef int32_t	MEM_ALLOC_RET_TYPE;
 #define MEM_DEBUG_PRINTF(...) do { }while(0)
 #endif
 
+typedef int32_t	MEM_ALLOC_RET_TYPE;
 typedef size_t		mem_size;
 typedef uint8_t		mem_word_type;
 typedef uint8_t		mem_avail;
 typedef uint8_t		mem_bool;
 
-#define MEM_SIZE_SPECIFIER "zu"
 
 typedef struct mem_header
 {
-
 #ifdef MEM_WATERMARKS
 	uint32_t mem_header_start;
 #endif
@@ -69,15 +71,6 @@ _Static_assert(sizeof(mem_header) % alignof(max_align_t) == 0,
 _Static_assert(sizeof(mem_footer) % alignof(max_align_t) == 0,
 	"footer size must be a multiple of the alignment");
 
-#define MEM_LOC(node)							(*(node))
-#define MEM_LINK(node)							((node)->next)
-#define MEM_SIZE(node)							((node)->size)
-#define MEM_AVAIL(node)							((node)->avail)
-#define MEM_FOOTER_ADDR(header)					((mem_footer *)((uint8_t *)(header) + sizeof(*(header)) + ((header)->size * sizeof(mem_word_type))))
-#define MEM_WHOLE_SIZE_NODE(node)				(sizeof(mem_header) + sizeof(mem_word_type) * ((node)->size) + sizeof(mem_footer))
-#define MEM_WHOLE_SIZE(size)					(sizeof(mem_header) + sizeof(mem_word_type) * (size) + sizeof(mem_footer))
-#define MEM_HEADER_SIZE							(sizeof(mem_header))
-#define MEM_PROVISIONING(needed_size)			((needed_size) * sizeof(mem_word_type) + sizeof(mem_footer))
 
 #if defined(__cplusplus)
 extern "C" {
